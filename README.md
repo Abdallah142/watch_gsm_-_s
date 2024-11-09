@@ -1,4 +1,3 @@
-# watch_gsm_-_s
 # Smart Bracelet with ESP32 for Health Monitoring
 
 ## Overview
