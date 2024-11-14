@@ -1,41 +1,63 @@
-#include <HardwareSerial.h>
+#define TINY_GSM_MODEM_SIM800
+#define SerialMon Serial
+#define SerialAT Serial1
+#define TINY_GSM_DEBUG SerialMon
+#define GSM_PIN ""
 
-HardwareSerial gsm(1);
+#define ADMIN_NUMBER "+201155938391"
+#define TINY_GSM_DEBUG SerialMon
+
+#include <TinyGsmClient.h>
+
+#ifdef DUMP_AT_COMMANDS
+#include <StreamDebugger.h>
+StreamDebugger debugger(SerialAT, SerialMon);
+TinyGsm modem(debugger);
+#else
+TinyGsm modem(SerialAT);
+#endif
+
+// ESP32 and SIM800l pins
+#define MODEM_TX 17
+#define MODEM_RX 16
+
+
+String phoneNumber = "";
+String text = "";
 
 void setup() {
-  // Start communication with the GSM module
-  gsm.begin(9600, SERIAL_8N1, 16, 17); // RX, TX
-  Serial.begin(115200); // Communication with the PC
-  Serial.println("SIM800 Module Testing...");
-
-  // Wait for the GSM module to initialize
+  SerialMon.begin(115200);
   delay(1000);
 
-  // Send an SMS
-  sendSMS("+1234567890", "Hello from ESP32!"); // Replace with your phone number
+  SerialMon.println("Wait ...");
+  SerialAT.begin(9600, SERIAL_8N1, MODEM_TX, MODEM_RX);
+  delay(3000);
+  SerialMon.println("Initializing modem ...");
+  modem.restart();
+
+
+  if (GSM_PIN && modem.getSimStatus() != 3) {
+    modem.simUnlock(GSM_PIN);
+  }
+
+  SerialMon.print("Waiting for network...");
+  if (!modem.waitForNetwork()) {
+    SerialMon.println(" fail");
+    delay(10000);
+    return;
+  }
+  SerialMon.println(" success");
+
+  if (modem.isNetworkConnected()) {
+    DBG("Network connected");
+  }
+
+  SerialAT.print("AT+CNMI=2,2,0,0,0\r");
+  delay(1000);
+  String smsMessage = "Hello From ESP32";
+  Serial.println(smsMessage);
+  modem.sendSMS(ADMIN_NUMBER, smsMessage);
 }
 
 void loop() {
-  // Nothing to do here
-}
-
-void sendSMS(const char* phoneNumber, const char* message) {
-  gsm.println("AT"); // Send AT command to check if the module is responding
-  delay(1000);
-
-  gsm.println("AT+CMGF=1"); // Set SMS mode to text
-  delay(1000);
-
-  gsm.print("AT+CMGS=\""); // Start sending SMS
-  gsm.print(phoneNumber);  // Phone number to send the SMS
-  gsm.println("\"");
-  delay(1000);
-
-  gsm.println(message); // The message to send
-  delay(1000);
-
-  gsm.write(26); // ASCII code for Ctrl+Z to send the message
-  delay(1000);
-
-  Serial.println("SMS sent successfully!");
 }
