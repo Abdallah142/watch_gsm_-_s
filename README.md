@@ -1,4 +1,4 @@
-# Smart Bracelet with ESP32 for Health Monitoring
+# SmartCare Diabetes
 
 ## Overview
 This project is a smart bracelet that monitors heart rate, oxygen saturation, temperature, and sends this data via SMS to caregivers using an ESP32 microcontroller, MAX30102 sensor, DS18B20 temperature sensor, and an OLED display. When caregivers respond via SMS, the data is displayed on the OLED screen.
