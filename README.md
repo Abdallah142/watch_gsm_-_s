@@ -11,7 +11,7 @@ This project is a smart bracelet that monitors heart rate, oxygen saturation, te
 - **DS18B20 Temperature Sensor**
 - **OLED Display (e.g., 128x64 I2C OLED)**
 - **GSM Module (e.g., SIM800L, SIM900)**
-- **26650 Li-Ion Rechargeable Battery (3.7V, 3000mAh)**
+- **2 x 26650 Li-Ion Rechargeable Batteries (3.7V, 3000mAh each, Total: 6000mAh)**
 - **Battery Management System (BMS)**
 - **Jumper wires and Breadboard**
 - **Resistors (for DS18B20 and MAX30102 connections)**
@@ -52,7 +52,7 @@ To use the ESP32 in Arduino IDE, follow these steps:
      ```
      https://dl.espressif.com/dl/package_esp32_index.json
      ```
-   
+
 2. **Install ESP32 Board:**
    - Go to `Tools > Board > Boards Manager`.
    - Search for `esp32` and click "Install" to add the ESP32 boards to your IDE.
@@ -107,11 +107,36 @@ Here is the wiring configuration for the components:
 
 ---
 
+## Power Consumption
+To estimate the runtime of the project with a combined 6000mAh battery capacity, we calculated the total current draw of all components.
+
+### Current Draw of Components
+- **ESP32**: ~80mA (average)
+- **GSM Module**: ~200mA (average, can spike up to 2A during transmission)
+- **MAX30102**: ~10mA (average)
+- **DS18B20**: ~1mA (average)
+- **OLED Display**: ~20mA (average)
+
+### Total Average Current
+\[ \text{Total average current} = 80mA (ESP32) + 200mA (GSM) + 10mA (MAX30102) + 1mA (DS18B20) + 20mA (OLED) = 311mA \]
+
+### Combined Battery Capacity
+\[ \text{Battery capacity} = 6000mAh \]
+
+### Estimated Runtime
+To find the runtime:
+\[ \text{Runtime (hours)} = \frac{\text{Battery capacity (mAh)}}{\text{Total average current (mA)}} \]
+\[ \text{Runtime} = \frac{6000mAh}{311mA} \approx 19.29 \text{ hours} \]
+
+With a combined battery capacity of 6000mAh and an average current draw of 311mA, the project is estimated to run for approximately 19.29 hours. This is a theoretical estimate, and actual runtime may vary based on real-world factors such as peak current draws, battery health, and efficiency of the power management in the circuit.
+
+---
+
 ## Power Management
 
 1. **Battery Considerations:**
-   - The **26650 Li-Ion** battery with a **BMS** is responsible for powering the ESP32 and sensors.
-   - Ensure the **BMS** is properly managing the charging and discharging of the battery to prevent damage.
+   - The **26650 Li-Ion** batteries with a **BMS** are responsible for powering the ESP32 and sensors.
+   - Ensure the **BMS** is properly managing the charging and discharging of the batteries to prevent damage.
    - Consider adding a low battery detection system to avoid power loss.
 
 ---
@@ -125,3 +150,5 @@ This project combines the ESP32's capabilities with multiple sensors to create a
 ## License
 
 This project is licensed under the MIT License.
+
+
