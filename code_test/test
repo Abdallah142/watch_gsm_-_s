@@ -1,0 +1,188 @@
+#include <ESP8266WiFi.h>
+#include <DHT.h>
+
+// Replace with your network credentials
+const char* ssid = "WE_F2FBA8";
+const char* password = "B24091208boody@";
+
+// DHT sensor
+#define DHTPIN D6      // Pin where the DHT sensor is connected
+#define DHTTYPE DHT11  // DHT 11
+DHT dht(DHTPIN, DHTTYPE);
+
+// MQ2 sensor
+#define MQ2PIN D5  // Pin where the MQ2 sensor is connected
+
+// IR sensor
+#define IRPIN D7  // Digital pin where the IR sensor is connected
+
+WiFiServer server(80);
+
+void setup() {
+  Serial.begin(115200);
+  delay(10);
+  
+  dht.begin();
+
+  // Set IR pin as input
+  pinMode(IRPIN, INPUT);
+
+  // Connect to Wi-Fi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  server.begin();
+}
+
+void loop() {
+  // Check if a client has connected
+  WiFiClient client = server.available();
+  if (!client) {
+    return;
+  }
+
+  // Wait until the client sends some data
+  Serial.println("new client");
+  while(!client.available()){
+    delay(1);
+  }
+
+  // Read the first line of the request
+  String request = client.readStringUntil('\r');
+  Serial.println(request);
+  client.flush();
+
+  // Match the request
+  if (request.indexOf("/temperature") != -1) {
+    float temperature = dht.readTemperature();
+    client.print(temperature);
+  }
+  else if (request.indexOf("/humidity") != -1) {
+    float humidity = dht.readHumidity();
+    client.print(humidity);
+  }
+  else if (request.indexOf("/gas") != -1) {
+    int gasValue = analogRead(MQ2PIN);
+    client.print(gasValue);
+  }
+  else if (request.indexOf("/ir") != -1) {
+    int irValue = digitalRead(IRPIN);
+    if (irValue == LOW) {
+      client.print("Object Detected");
+    } else {
+      client.print("No Object");
+    }
+  }
+  else {
+    // Webpage
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: text/html");
+    client.println("");
+    client.println(R"rawliteral(
+<!DOCTYPE HTML><html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+  <style>
+    html {
+     font-family: Arial;
+     display: inline-block;
+     margin: 0px auto;
+     text-align: center;
+    }
+    h2 { font-size: 3.0rem; }
+    p { font-size: 3.0rem; }
+    .units { font-size: 1.2rem; }
+    .dht-labels{
+      font-size: 1.5rem;
+      vertical-align:middle;
+      padding-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Ventus vitality</h2>
+  <h3>ESP8266 DHT & MQ2 Server</h3>
+  <p>
+    <i class="fas fa-thermometer-half" style="color:#059e8a;"></i> 
+    <span class="dht-labels">Temperature</span> 
+    <span id="temperature">%TEMPERATURE%</span>
+    <sup class="units">&deg;C</sup>
+  </p>
+  <p>
+    <i class="fas fa-tint" style="color:#00add6;"></i> 
+    <span class="dht-labels">Humidity</span>
+    <span id="humidity">%HUMIDITY%</span>
+    <sup class="units">&percnt;</sup>
+  </p>
+  <p>
+    <i class="fas fa-gas-pump" style="color:#ff6347;"></i>
+    <span class="dht-labels">Gas</span>
+    <span id="gas">%GAS%</span>
+  </p>
+  <p>
+    <i class="fas fa-signal" style="color:#ff6347;"></i>
+    <span class="dht-labels">IR Sensor</span>
+    <span id="ir">%IR%</span>
+  </p>
+</body>
+<script>
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("temperature").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/temperature", true);
+  xhttp.send();
+}, 10000 ) ;
+
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("humidity").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/humidity", true);
+  xhttp.send();
+}, 10000 ) ;
+
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("gas").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/gas", true);
+  xhttp.send();
+}, 10000 ) ;
+
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("ir").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/ir", true);
+  xhttp.send();
+}, 10000 ) ;
+</script>
+</html>)rawliteral");
+  }
+
+  delay(1);
+  Serial.println("Client disconnected");
+  Serial.println("");
+}
